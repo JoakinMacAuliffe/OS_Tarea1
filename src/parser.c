@@ -10,7 +10,8 @@
 #define MAX_TASKS 20000 // Cantidad máxima de tareas (el ejercicio pide 10000 pero pondré 20000 porque sí)
 #define MAX_LINE_LENGTH 256 // Largo máximo de una línea
 
-typedef struct {
+// "Clase" definida para guardar cada línea del documento como objeto
+typedef struct {  
     int id; // ID_Actividad
     char name[MAX_NAME_LEN]; // Nombre_Actividad
     int duration; // tiempo_ms
