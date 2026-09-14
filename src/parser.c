@@ -124,7 +124,8 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
                     printf(", ");
                 }
             }
-        printf("\nCantidad de dependencias: %d\n\n", task.dep_count);
+        printf("\n");
+        printf("Cantidad de dependencias: %d\n\n", task.dep_count);
         
         
     }
