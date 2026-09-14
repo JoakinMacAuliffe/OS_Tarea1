@@ -1,28 +1,17 @@
-// parser.c se encarga de parsear (valga la redundancia) el archivo plan.txt de tal manera de que se pueda utilizar
-// para la posterior ejecución del programa
+// parser.c se encarga de parsear (valga la redundancia) el archivo de planificacion de tal manera de que se pueda utilizar
+// para la posterior construccion del DAG y la ejecucion concurrente en el scheduler.
 // 
-// Se crea un struct (objeto) llamado TASK, en donde se guardarán todos los atributos de cada tarea, separados por ":".
-// Posteriormente, se parsean y se guardan en un arreglo de TASKS.
+// Utiliza la estructura TASK importada desde parser.h para almacenar los atributos de cada actividad separados por ":".
+// Asigna duracion aleatoria entre 100 y 5000 ms si no viene especificada en el archivo, procesa las dependencias separadas por coma
+// y carga dinamicamente las tareas en un arreglo en memoria heap para ser consumido por los demas modulos.
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-#define MAX_NAME_LEN 64 // Longitud máxima del nombre de la actividad 
-#define MAX_DEPS 16 // Cantidad máxima de dependencias
-#define MAX_TASKS 20000 // Cantidad máxima de tareas (el ejercicio pide 10000 pero pondré 20000 porque sí)
+#include <time.h>
+#include "parser.h"
 #define MAX_LINE_LENGTH 256 // Largo máximo de una línea
-#define MAX_ID_LENGTH 32 // Largo máximo de la ID
-
-// "Clase" definida para guardar cada línea del documento como objeto
-typedef struct {  
-    char id[MAX_ID_LENGTH]; // ID_Actividad
-    char name[MAX_NAME_LEN]; // Nombre_Actividad
-    int duration; // tiempo_ms
-    char dependencies[MAX_DEPS][MAX_ID_LENGTH];
-    int dep_count;
-} TASK;
 
 // Función para quitar los espacios de cada entrada, (ej. "   prender_carbon " = "prender_carbon")
 static char *trim(char *text) {
@@ -54,7 +43,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
     // Arreglo de TASKs
     TASK *tasks = malloc(MAX_TASKS * sizeof *tasks);
     int task_count = 0; // Utilizado para insertar tareas en el arreglo
-        if (tasks == NULL) {
+    if (tasks == NULL) {
         perror("error de malloc");
         fclose(file);
         return EXIT_FAILURE;
@@ -95,7 +84,16 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
         if (!field) {
             continue;
         }
-        task.duration = atoi(trim(field));
+        
+        char *dur_str = trim(field);
+        int parsed_duration = atoi(dur_str);
+
+        // Si no tiene duracion o es 0, asignar aleatorio entre 100 y 5000 ms segun enunciado
+        if (parsed_duration <= 0) {
+            task.duration = (rand() % 4901) + 100;
+        } else {
+            task.duration = parsed_duration;
+        }
         
         // separar dependencias
         field = strtok(NULL, ":");
@@ -126,8 +124,6 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
             }
         printf("\n");
         printf("Cantidad de dependencias: %d\n\n", task.dep_count);
-        
-        
     }
 
     *out_tasks = tasks; 
@@ -136,17 +132,16 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
     printf("%d tareas cargadas correctamente en la memoria.\n", task_count);
 
     return EXIT_SUCCESS;
-
 }
 
 int main(void) {
+    srand((unsigned int)time(NULL));
 
-TASK *tasks;
-int task_count;
+    TASK *tasks;
+    int task_count;
 
-readFile("plan.txt", &tasks, &task_count); // test para testear que el testeo esté testeadamente testeado
+    readFile("plan.txt", &tasks, &task_count); // test para testear que el testeo esté testeadamente testeado
 
-return 0;
-
+    free(tasks);
+    return 0;
 }
-
