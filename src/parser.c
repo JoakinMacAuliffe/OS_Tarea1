@@ -52,7 +52,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
     // Leer línea por línea hasta EOF o límite
     // Esta condicion guarda cada línea del archivo en el buffer
     while (fgets(buffer, sizeof(buffer), file) && task_count < MAX_TASKS) {
-        buffer[strcspn(buffer, "\r\n")] = '\0';
+        buffer[strcspn(buffer, "\r\n")] = '\0'; //recorre el buffer hasta el \n y lo reemplaza por un \0
 
         // Se saltan las líneas en blanco
         if (buffer[0] == '\0') {
@@ -65,7 +65,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
         // strtok permite separar cada campo con :
 
         // separar id
-        char *field = strtok(buffer, ":");
+        char *field = strtok(buffer, ":"); //reemplaza el primer ":" por \0 en el buffer y apunta field al inicio del campo (ID)
         if (!field) {
             continue;
         }
@@ -73,7 +73,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
         strcpy(task.id, trim(field));
 
         // separar nombre
-        field = strtok(NULL, ":");
+        field = strtok(NULL, ":"); //sigue cortando la misma cadena desde el byte donde quedó esperando el buffer
         if (!field) {
             continue;
         }
@@ -97,7 +97,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
         
         // separar dependencias
         field = strtok(NULL, ":");
-        if (field != NULL) {
+        if (field != NULL) {  // se comprueba que tenga dependencias
             // separar cada dependencia con ,
             char *dependency = strtok(field, ",");
             while (dependency != NULL && task.dep_count < MAX_DEPS) {
