@@ -135,13 +135,14 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
 }
 
 int main(void) {
-    srand((unsigned int)time(NULL));
 
-    TASK *tasks;
-    int task_count;
+    // USO:
 
-    readFile("plan.txt", &tasks, &task_count); // test para testear que el testeo esté testeadamente testeado
+    // srand((unsigned int)time(NULL));
+    
+    // TASK *tasks;
+    // int task_count;
+    // readFile("plan.txt", &tasks, &task_count); // test para testear que el testeo esté testeadamente testeado
 
-    free(tasks);
     return 0;
 }
