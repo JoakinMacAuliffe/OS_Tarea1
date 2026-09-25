@@ -101,12 +101,17 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
             // separar cada dependencia con ,
             char *dependency = strtok(field, ",");
             while (dependency != NULL && task.dep_count < MAX_DEPS) {
-                // Para cada dependencia, guardar en objeto task
-                strcpy(task.dependencies[task.dep_count], trim(dependency));
-                task.dep_count++;
+                char *dep_limpia = trim(dependency);
+                
+                // Solo agregar si la dependencia contiene texto real (evita dependencias vacias)
+                if (strlen(dep_limpia) > 0) {
+                    strcpy(task.dependencies[task.dep_count], dep_limpia);
+                    task.dep_count++;
+                }
+                
                 dependency = strtok(NULL, ",");
             }
-        } 
+        }
         
         // Guardar objeto TASK en el arreglo
         tasks[task_count++] = task;
