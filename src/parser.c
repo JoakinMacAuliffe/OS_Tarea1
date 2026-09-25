@@ -134,6 +134,7 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
     return EXIT_SUCCESS;
 }
 
+#ifdef TEST_PARSER
 int main(void) {
 
     // USO:
@@ -146,3 +147,5 @@ int main(void) {
 
     return 0;
 }
+
+#endif 
