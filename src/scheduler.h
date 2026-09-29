@@ -2,6 +2,8 @@
 #define SCHEDULER_H
 
 #include "parser.h"
+#include "scheduler.h"
+#include "dag.h"
 
 //ejecuta las actividades del DAG respetando el limite de concurrencia K
 void run_scheduler(TASK *tasks, int total, int K);

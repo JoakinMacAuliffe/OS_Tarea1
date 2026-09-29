@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include "parser.h"
 #include "scheduler.h"
+#include "dag.h"
 // se definen los posibles estados de cada tarea
 
 typedef enum{

@@ -59,6 +59,11 @@ int dag_build(Dag *dag, const TASK *tareas, int cantidad_tareas) {
                 tareas[i].dependencies[j]
             );
 
+            if (indice_dependencia < 0) {
+                dag_free(dag);
+                return -1;
+            }
+
             dag->nodos[indice_dependencia].cantidad_dependientes++;
 
         }
