@@ -39,51 +39,46 @@ typedef struct{
 static TaskControl *g_ctrl = NULL;
 static int g_total_tasks = 0;
 
+static int puede_ejecutar (const Dag *dag, const TaskControl *ctrl, int indice_tarea) {
 
-// buscador de posicion de una tarea por su ID
-
-static int buscar_tarea(TASK *tasks, int total, const char *id) {
-    for (int i = 0; i < total; i++) {
-        if (strcmp(tasks[i].id, id) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-// Evaluador de si una tarea puede ejecutarse
-/*
-si la tarea no esta esperando no se puede ejecutar, sus dependencias no pueden haber terminado con algun fallo,
-tambien todas sus dependencias deben estar completadas, si aun no terminan, la tarea debe esperar
-*/
-
-int puede_ejecutar(TASK *tasks, TaskControl *ctrl, int total, int i) {
-    // Si no esta en espera, no se toca
-    if (ctrl[i].state != estado_esperando) {
+    // solo se ejecutan tareas que estan esperando
+    if (ctrl[indice_tarea].state != estado_esperando) {
         return 0;
     }
 
-    // Revisar cada dependencia de la tarea
-    for (int d = 0; d < tasks[i].dep_count; d++) {
-        int dep = buscar_tarea(tasks, total, tasks[i].dependencies[d]);
+    // el dag mantiene la cantidad de dependencias que faltan, de ser 0, se desbloquea la tarea
+    return dag->nodos[indice_tarea].grado_entrada == 0;
 
-        // Aislamiento de errores: si una dependencia fallo, esta tarea tambien falla
-        if (dep != -1 && ctrl[dep].state == estado_fallida) {
-            ctrl[i].state = estado_fallida;
-            printf("(error)Tarea %s abortada: su dependencia %s fallo.\n", tasks[i].id, tasks[dep].id);
-            return 0;
-        }
-
-        // Si la dependencia aun no termina bien, toca seguir esperando
-        if (dep == -1 || ctrl[dep].state != estado_completada) {
-            return 0;
-        }
-    }
-
-    // todas sus dependencias finalizaron correctamente
-    return 1;
 }
 
+// funcion que decrementa el grado de entrada de una tarea representando sus dependencias
+static void desbloquear_dependientes (Dag *dag, int indice_tarea) {
+    DagNode *nodo = &dag->nodos[indice_tarea];
+
+    for (int i = 0; i < nodo->cantidad_dependientes; i++) {
+        int indice_dependiente = nodo->dependientes[i];
+
+        if (dag->nodos[indice_dependiente].grado_entrada > 0) {
+            dag->nodos[indice_dependiente].grado_entrada--;
+        }
+    }
+}
+
+// funcion recursiva que una vez falla un nodo propaga dicho fallo a todas las tareas que dependen de él, para que no queden esperando eternamente
+static void propagar_fallo (const Dag *dag, TaskControl *ctrl, int indice_tarea) {
+
+    DagNode *nodo = &dag->nodos[indice_tarea];
+
+    for (int i = 0; i < nodo->cantidad_dependientes; i++) {
+    
+        int dependiente = nodo->dependientes[i];
+    
+        if (ctrl[dependiente].state == estado_esperando) {
+            ctrl[dependiente].state = estado_fallida;
+            propagar_fallo (dag, ctrl, dependiente);
+        }
+    }
+}
 
 // se detienen todos los procesos activos simulando lo de la seremi
 void manejar_seremi(int sig) {
@@ -116,10 +111,26 @@ void ejecutar_hijo(TASK *t, int write_fd) {
 //con esto se aplican todas las funciionalidades de las funciones funcionadas anteriormente para runear el scheduler
 
 void run_scheduler(TASK *tasks, int total, int K) {
+    
+    // validacion de parametros
+    if (tasks == NULL || total <= 0 || K <= 0) {
+        perror("Parametros invalidos.\n");
+        return;
+    }
+
+    // Creacion del dag
+    Dag dag = {0};
+    if (dag_build(&dag, tasks, total) != 0) {
+        perror("error al construir el dag\n");
+        return;
+    }
+    
     // calloc limpia toda la memoria en 0 (todas arrancan en estado_esperando)
-    TaskControl *ctrl = calloc(total, sizeof(TaskControl));
+    TaskControl *ctrl = calloc((size_t) total, sizeof(TaskControl));
+
     if (!ctrl) {
-        perror("error al asignar memoria para TaskControl");
+        perror("error al asignar memoria para TaskControl\n");
+        dag_free(&dag);
         return;
     }
 
@@ -134,7 +145,7 @@ void run_scheduler(TASK *tasks, int total, int K) {
     while (1) {
         // primero, lanzar tareas si estan listas y hay espacio en el limite K
         for (int i = 0; i < total && activos < K; i++) {
-            if (puede_ejecutar(tasks, ctrl, total, i)) {
+            if (puede_ejecutar(&dag, ctrl, i)) {
                 
                 // crear tuberia para pasar el insumo
                 if (pipe(ctrl[i].out_pipe) < 0) {
@@ -186,6 +197,8 @@ void run_scheduler(TASK *tasks, int total, int K) {
                         read(ctrl[i].out_pipe[0], ctrl[i].output_msj, sizeof(ctrl[i].output_msj) - 1);
                         printf("[FIN] Tarea %s (%s) completada -> Insumo: \"%s\"\n", 
                                tasks[i].id, tasks[i].name, ctrl[i].output_msj);
+                        // actualizar dag para que las tareas que dependian de esta se puedan ejecutar
+                        desbloquear_dependientes(&dag, i);
                     } else {
                         ctrl[i].state = estado_fallida;
                         printf("[FALLO] Tarea %s termino con error\n", tasks[i].id);
@@ -201,7 +214,9 @@ void run_scheduler(TASK *tasks, int total, int K) {
 
     // liberar memoria antes de salir
     free(ctrl);
+    dag_free(&dag);
     g_ctrl = NULL;
+    g_total_tasks = 0;
 }
 
 #ifdef TEST_MAIN
