@@ -116,19 +116,19 @@ int readFile (const char *path, TASK **out_tasks, int *out_task_count) {
         // Guardar objeto TASK en el arreglo
         tasks[task_count++] = task;
 
-        // Imprimir linea parseada
-        printf("ID_Actividad: %s\n", task.id);
-        printf("Nombre_Actividad: %s\n", task.name);
-        printf("Duración: %d\n", task.duration);
-        printf("Dependencias: "); 
-            for (int i = 0; i < task.dep_count; i++) {
-                printf("%s", task.dependencies[i]);
-                if (i < task.dep_count - 1) {
-                    printf(", ");
-                }
-            }
-        printf("\n");
-        printf("Cantidad de dependencias: %d\n\n", task.dep_count);
+        // // Imprimir linea parseada
+        // printf("ID_Actividad: %s\n", task.id);
+        // printf("Nombre_Actividad: %s\n", task.name);
+        // printf("Duración: %d\n", task.duration);
+        // printf("Dependencias: "); 
+        //     for (int i = 0; i < task.dep_count; i++) {
+        //         printf("%s", task.dependencies[i]);
+        //         if (i < task.dep_count - 1) {
+        //             printf(", ");
+        //         }
+        //     }
+        // printf("\n");
+        // printf("Cantidad de dependencias: %d\n\n", task.dep_count);
     }
 
     *out_tasks = tasks; 
