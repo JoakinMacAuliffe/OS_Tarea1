@@ -157,6 +157,7 @@ void run_scheduler(TASK *tasks, int total, int K) {
 
                 if (pid == 0) {
                     // codigo del hijo: solo escribe en la tuberia
+                    signal(SIGINT, SIG_DFL); // restaurar comportamiento normal de SIGINT para que el hijo no ejecute manejar_seremi()                
                     close(ctrl[i].out_pipe[0]);
                     ejecutar_hijo(&tasks[i], ctrl[i].out_pipe[1]);
                 } else if (pid > 0) {
