@@ -202,6 +202,7 @@ void run_scheduler(TASK *tasks, int total, int K) {
                     } else {
                         ctrl[i].state = estado_fallida;
                         printf("[FALLO] Tarea %s termino con error\n", tasks[i].id);
+                        propagar_fallo(&dag, ctrl, i);
                     }
 
                     // cerrar la lectura del pipe para liberar recursos
