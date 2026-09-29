@@ -7,10 +7,10 @@
 
 int main (int argc, char *argv[]) {
 
-    if (argc < 2 || argc > 3) {
-        fprintf(stderr, "Uso: %s plan.txt [límite_concurrencia]\n", argv[0]);
-    return EXIT_FAILURE;
-    };
+    if (argc != 3) {
+        fprintf(stderr, "Uso: %s plan.txt [limite_concurrencia]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
     // primer argumento es el archivo
     const char *archivo = argv[1];
