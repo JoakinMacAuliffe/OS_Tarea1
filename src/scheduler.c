@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <stdbool.h>
+#include <time.h>
 #include "parser.h"
 #include "scheduler.h"
 #include "dag.h"
@@ -46,6 +47,11 @@ static int puede_ejecutar (const Dag *dag, const TaskControl *ctrl, int indice_t
         return 0;
     }
 
+    // si una tarea falló no seguirá siendo ejecutada
+    if (ctrl[indice_tarea].state == estado_fallida) {
+        return 0;
+    }
+
     // el dag mantiene la cantidad de dependencias que faltan, de ser 0, se desbloquea la tarea
     return dag->nodos[indice_tarea].grado_entrada == 0;
 
@@ -65,7 +71,7 @@ static void desbloquear_dependientes (Dag *dag, int indice_tarea) {
 }
 
 // funcion recursiva que una vez falla un nodo propaga dicho fallo a todas las tareas que dependen de él, para que no queden esperando eternamente
-static void propagar_fallo (const Dag *dag, TaskControl *ctrl, int indice_tarea) {
+static void propagar_fallo (const Dag *dag, const TASK *tasks, TaskControl *ctrl, int indice_tarea) {
 
     DagNode *nodo = &dag->nodos[indice_tarea];
 
@@ -75,7 +81,17 @@ static void propagar_fallo (const Dag *dag, TaskControl *ctrl, int indice_tarea)
     
         if (ctrl[dependiente].state == estado_esperando) {
             ctrl[dependiente].state = estado_fallida;
-            propagar_fallo (dag, ctrl, dependiente);
+            printf("[ERROR] Tarea %s abortada por dependencia\n", tasks[dependiente].id);
+            propagar_fallo (dag, tasks, ctrl, dependiente);
+        }  else if (ctrl[dependiente].state == estado_ejecutandose) {
+            ctrl[dependiente].state = estado_fallida;
+
+            if (ctrl[dependiente].pid > 0) {
+                kill(ctrl[dependiente].pid, SIGTERM);
+            }
+
+            propagar_fallo(dag, tasks, ctrl, dependiente);
+
         }
     }
 }
@@ -98,12 +114,22 @@ void ejecutar_hijo(TASK *t, int write_fd) {
     // Duerme los milisegundos indicados (1 ms = 1000 microsegundos)
     usleep(t->duration * 1000);
 
+    // cada hijo genera una semilla distinta
+    srand((unsigned) time(NULL) ^ (unsigned) getpid());
+
+    if (rand() % 100 == 0) {
+        char msj[64];
+        snprintf(msj, sizeof(msj), "ERROR:%s", t->id);
+        write(write_fd, msj, strlen(msj) + 1);
+        close(write_fd);
+        exit(1);
+    }
+
     // Escribe el mensaje con el insumo generado en la tuberia
     char msj[64];
     snprintf(msj, sizeof(msj), "LISTO:%s", t->id);
     write(write_fd, msj, strlen(msj) + 1);
     close(write_fd);
-
     exit(0); // El hijo siempre finaliza con exit()
 }
 
@@ -203,7 +229,7 @@ void run_scheduler(TASK *tasks, int total, int K) {
                     } else {
                         ctrl[i].state = estado_fallida;
                         printf("[FALLO] Tarea %s termino con error\n", tasks[i].id);
-                        propagar_fallo(&dag, ctrl, i);
+                        propagar_fallo(&dag, tasks, ctrl, i);
                     }
 
                     // cerrar la lectura del pipe para liberar recursos
