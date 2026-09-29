@@ -114,17 +114,6 @@ void ejecutar_hijo(TASK *t, int write_fd) {
     // Duerme los milisegundos indicados (1 ms = 1000 microsegundos)
     usleep(t->duration * 1000);
 
-    // cada hijo genera una semilla distinta
-    srand((unsigned) time(NULL) ^ (unsigned) getpid());
-
-    if (rand() % 100 == 0) {
-        char msj[64];
-        snprintf(msj, sizeof(msj), "ERROR:%s", t->id);
-        write(write_fd, msj, strlen(msj) + 1);
-        close(write_fd);
-        exit(1);
-    }
-
     // Escribe el mensaje con el insumo generado en la tuberia
     char msj[64];
     snprintf(msj, sizeof(msj), "LISTO:%s", t->id);
